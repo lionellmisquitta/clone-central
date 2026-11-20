@@ -1,0 +1,17 @@
+change_id: CHG-001
+readiness: ready
+open_contradictions: []
+hub_suppressed: false
+targets:
+  - experiments/voice_clone.py
+  - experiments/separate_music.py
+  - tests/test_experiments.py
+  - .github/workflows/ci.yml
+  - RUN.md
+regression_obligations:
+  - id: RO-001
+    reason: Voice and music mode mappings must remain explicit.
+    test_id: T-001
+  - id: RO-002
+    reason: Paths with spaces must remain safe when passed to Demucs.
+    test_id: T-001
