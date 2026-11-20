@@ -29,7 +29,12 @@ if errorlevel 1 (
  if errorlevel 1 goto :failed
 )
 echo.
-set /p "REF=Full path to your reference voice WAV: "
+if defined CLONE_CENTRAL_REFERENCE_WAV (
+ set "REF=%CLONE_CENTRAL_REFERENCE_WAV%"
+ echo Using WAV recorded in Clone Central: %REF%
+) else (
+ set /p "REF=Full path to your reference voice WAV: "
+)
 set /p "REF_TEXT=Exact words spoken in that clip: "
 set /p "SPEECH=New text to generate: "
 echo.
