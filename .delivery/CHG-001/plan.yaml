@@ -21,6 +21,8 @@ checkpoints:
       - MODEL-LIBRARY.cmd
       - MODEL-LIBRARY-README.md
       - model_library.py
+      - recorder.py
+      - tests/test_recorder.py
       - VOICE-EXPERIMENT.cmd
       - MUSIC-EXPERIMENT.cmd
       - START-HERE.txt
@@ -29,6 +31,7 @@ checkpoints:
     test_paths:
       - tests/test_experiments.py
       - tests/test_model_library.py
+      - tests/test_recorder.py
     tests:
       - id: T-001
         command: ["python", "-m", "unittest", "discover", "-s", "tests", "-v"]
