@@ -7,6 +7,7 @@ prohibited_paths:
   - data/
 test_config_changes:
   - .github/workflows/ci.yml
+  - .github/workflows/windows-package.yml
 checkpoints:
   - id: AUDIO_001
     allowed_paths:
@@ -15,6 +16,13 @@ checkpoints:
       - RUN.md
       - .delivery/CHG-001/
       - .github/workflows/ci.yml
+      - .github/workflows/windows-package.yml
+      - MODEL-LIBRARY.cmd
+      - MODEL-LIBRARY-README.md
+      - model_library.py
+      - VOICE-EXPERIMENT.cmd
+      - MUSIC-EXPERIMENT.cmd
+      - START-HERE.txt
       - experiments/
       - tests/
     test_paths:
