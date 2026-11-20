@@ -17,6 +17,7 @@ checkpoints:
       - .delivery/CHG-001/
       - .github/workflows/ci.yml
       - .github/workflows/windows-package.yml
+      - clone-central.cmd
       - MODEL-LIBRARY.cmd
       - MODEL-LIBRARY-README.md
       - model_library.py
@@ -27,6 +28,7 @@ checkpoints:
       - tests/
     test_paths:
       - tests/test_experiments.py
+      - tests/test_model_library.py
     tests:
       - id: T-001
         command: ["python", "-m", "unittest", "discover", "-s", "tests", "-v"]
