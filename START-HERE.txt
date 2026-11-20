@@ -6,6 +6,8 @@ It contains SOURCE CODE AND LAUNCHERS, not pretrained model weights or audio rec
 1) Extract ZIP into a normal folder (for example Documents\CloneCentral).
 2) Install Python 3.12 for Windows if not already installed; enable the Python launcher.
 3) On a device authorized to run this software, double-click:
+   - MODEL-LIBRARY.cmd to pick and download AI models using a dropdown.
+   - clone-central.cmd (from Command Prompt) for pull/list/models commands.
    - VOICE-EXPERIMENT.cmd for narration in a cloned reference voice.
    - MUSIC-EXPERIMENT.cmd to separate vocals from accompaniment.
 4) The first run can download substantial third-party models and dependencies.
