@@ -1,5 +1,6 @@
 """Minimal microphone WAV recorder. Keeps recordings local; no cloud or GUI dependencies."""
 from datetime import datetime
+from uuid import uuid4
 from pathlib import Path
 import wave
 
@@ -24,7 +25,7 @@ def save_wav(frames, destination, sample_rate=SAMPLE_RATE):
 
 def output_path(folder):
     """Distinct file per recording; never overwrite an earlier reference."""
-    return Path(folder) / ("reference-" + datetime.now().strftime("%Y%m%d-%H%M%S-%f") + ".wav")
+    return Path(folder) / ("reference-" + datetime.now().strftime("%Y%m%d-%H%M%S") + "-" + uuid4().hex[:8] + ".wav")
 
 
 class MicrophoneRecorder:
