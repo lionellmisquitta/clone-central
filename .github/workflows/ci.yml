@@ -1,0 +1,26 @@
+name: Fast code checks
+on:
+  push:
+  pull_request:
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Syntax and argument tests (no model download)
+        run: |
+          python -m compileall -q experiments tests
+          python -m unittest discover -s tests -v
+      - name: Block large/model/audio data in repository
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          banned={'.wav','.mp3','.flac','.gguf','.safetensors','.pt','.pth','.ckpt','.onnx'}
+          for p in Path('.').rglob('*'):
+              if not p.is_file() or '.git' in p.parts: continue
+              assert p.suffix.lower() not in banned, f'Banned binary/model asset: {p}'
+              assert p.stat().st_size < 5_000_000, f'File too large: {p}'
+          PY

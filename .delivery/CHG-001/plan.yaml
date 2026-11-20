@@ -1,0 +1,38 @@
+schema_version: "1.0"
+change_id: CHG-001
+route: standard_change
+prohibited_paths:
+  - models/
+  - outputs/
+  - data/
+test_config_changes:
+  - .github/workflows/ci.yml
+  - .github/workflows/windows-package.yml
+checkpoints:
+  - id: AUDIO_001
+    allowed_paths:
+      - .gitignore
+      - PLAN.md
+      - RUN.md
+      - .delivery/CHG-001/
+      - .github/workflows/ci.yml
+      - .github/workflows/windows-package.yml
+      - clone-central.cmd
+      - MODEL-LIBRARY.cmd
+      - MODEL-LIBRARY-README.md
+      - model_library.py
+      - recorder.py
+      - tests/test_recorder.py
+      - VOICE-EXPERIMENT.cmd
+      - MUSIC-EXPERIMENT.cmd
+      - START-HERE.txt
+      - experiments/
+      - tests/
+    test_paths:
+      - tests/test_experiments.py
+      - tests/test_model_library.py
+      - tests/test_recorder.py
+    tests:
+      - id: T-001
+        command: ["python", "-m", "unittest", "discover", "-s", "tests", "-v"]
+        timeout_seconds: 60
