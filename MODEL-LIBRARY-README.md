@@ -36,3 +36,9 @@ clone-central models
 Use `--folder "D:\\AI Models\\CloneCentral"` after a `pull` or `list` command to choose a storage directory; a chosen folder is remembered.
 
 The graphical picker also has a **Copy pull command** button. Both interfaces share one small model catalog. First launch installs only the Python download helper; actual models remain external downloads. This is an experimental source-based ZIP, not a self-contained .exe.
+
+## Record a reference WAV without installing another recorder
+
+Open Model Library and click **Record WAV**; speak for 10–20 seconds (30-second limit), then **Stop and save**. A mono 16-kHz signed 16-bit WAV is saved outside OneDrive by default under `%LOCALAPPDATA%\CloneCentral\recordings`. The path appears in the same window. Clicking **Use selected model** automatically passes this WAV to the voice experiment, where you must enter **exactly what you said** as the reference transcript and then your new target text. The default microphone is used; Windows microphone permission must be enabled. This is local recording, not cloud upload.
+
+**Current limitation:** generation still uses a command window. The in-window generation and progress view remain future work; do not claim they exist.
