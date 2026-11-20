@@ -20,10 +20,10 @@ if not exist ".venv\Scripts\python.exe" (
  py -3.12 -m venv .venv
  if errorlevel 1 goto :failed
 )
-".venv\Scripts\python.exe" -c "import huggingface_hub, sounddevice" >nul 2>&1
+".venv\Scripts\python.exe" -c "import huggingface_hub, sounddevice, numpy" >nul 2>&1
 if errorlevel 1 (
  echo Installing model download support...
- ".venv\Scripts\python.exe" -m pip install huggingface_hub sounddevice
+ ".venv\Scripts\python.exe" -m pip install huggingface_hub sounddevice numpy
  if errorlevel 1 goto :failed
 )
 ".venv\Scripts\python.exe" model_library.py
