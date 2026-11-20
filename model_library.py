@@ -109,8 +109,8 @@ class Library(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("Clone Central - Model Library")
-        self.geometry("680x560")
-        self.minsize(620, 520)
+        self.geometry("860x820")
+        self.minsize(740, 700)
         self.root_dir = tk.StringVar(value=str(read_root()))
         self.available = tk.StringVar(value=next(iter(CATALOG)))
         self.selected = tk.StringVar()
@@ -120,6 +120,10 @@ class Library(tk.Tk):
         self.recording_at = None
         self.reference_path = tk.StringVar(value="No recording yet")
         self.record_time = tk.StringVar(value="Ready to record (up to 30 seconds)")
+        self.reference_text = tk.StringVar()
+        self.target_text = tk.StringVar(value="Welcome to Clone Central. This is my first AI-generated recording.")
+        self.mode = tk.StringVar(value="fast")
+        self.output_file = None
 
         area = ttk.Frame(self, padding=18)
         area.pack(fill="both", expand=True)
@@ -151,7 +155,22 @@ class Library(tk.Tk):
         self.stop_button.pack(side="left", padx=8)
         ttk.Label(buttons, textvariable=self.record_time).pack(side="left", padx=8)
         ttk.Label(area, textvariable=self.reference_path, wraplength=620).pack(anchor="w", pady=(4, 8))
-        ttk.Button(area, text="Use selected model", command=self.use_selected).pack(anchor="w")
+        ttk.Label(area, text="Exact words spoken in your reference recording").pack(anchor="w")
+        ttk.Entry(area, textvariable=self.reference_text).pack(fill="x", pady=(2, 7))
+        ttk.Label(area, text="New words for Clone Central to speak").pack(anchor="w")
+        ttk.Entry(area, textvariable=self.target_text).pack(fill="x", pady=(2, 7))
+        controls = ttk.Frame(area)
+        controls.pack(fill="x", pady=(4, 5))
+        ttk.Label(controls, text="Quality:").pack(side="left")
+        ttk.Combobox(controls, textvariable=self.mode, values=["fast", "balanced", "studio"], state="readonly", width=12).pack(side="left", padx=8)
+        self.generate_button = ttk.Button(controls, text="Generate voice", command=self.use_selected)
+        self.generate_button.pack(side="left", padx=8)
+        self.progress = ttk.Progressbar(area, mode="indeterminate")
+        self.progress.pack(fill="x", pady=(4, 7))
+        ttk.Label(area, text="Generation activity (no separate console)").pack(anchor="w")
+        self.log_area = tk.Text(area, height=7, wrap="word", state="disabled")
+        self.log_area.pack(fill="both", expand=True, pady=(3, 5))
+        ttk.Button(area, text="Open generated WAV", command=self.open_output).pack(anchor="w")
         ttk.Label(area, textvariable=self.status, wraplength=570).pack(anchor="w", pady=(14, 0))
         ttk.Label(area, text="Downloads stay local. No voice samples or weights are uploaded to GitHub.", foreground="#555").pack(anchor="w", pady=(12, 0))
         self.refresh()
@@ -258,25 +277,100 @@ class Library(tk.Tk):
         self.stop_button.configure(state="disabled")
         self.record_time.set("Ready to record (up to 30 seconds)")
 
+    def log(self, line):
+        self.log_area.configure(state="normal")
+        self.log_area.insert("end", line.rstrip() + "\n")
+        self.log_area.see("end")
+        self.log_area.configure(state="disabled")
+        self.status.set(line.strip()[-140:])
+
+    def open_output(self):
+        if self.output_file and self.output_file.is_file():
+            os.startfile(str(self.output_file))
+        else:
+            messagebox.showinfo("No audio yet", "Generate a voice WAV first.")
+
     def use_selected(self):
+        if self.busy:
+            return
         name = self.selected.get()
         if name not in CATALOG:
             messagebox.showinfo("Nothing installed", "Download a model first.")
             return
-        root = self.current_root()
         kind, model_id, _ = CATALOG[name]
-        env = os.environ.copy()
-        env["CLONE_CENTRAL_MODEL_NAME"] = model_id
-        env["CLONE_CENTRAL_MODEL_PATH"] = str(model_folder(root, name))
-        if kind == "voice" and self.reference_path.get() != "No recording yet":
-            env["CLONE_CENTRAL_REFERENCE_WAV"] = self.reference_path.get()
-        launcher = "VOICE-EXPERIMENT.cmd" if kind == "voice" else "MUSIC-EXPERIMENT.cmd"
-        script = Path(__file__).resolve().parent / launcher
-        if not script.is_file():
-            messagebox.showerror("Missing launcher", str(script))
+        if kind != "voice":
+            messagebox.showinfo("Music", "Music separation still uses the separate experiment; this window now handles voice.")
             return
-        self.status.set("Opening " + launcher + " with " + name)
-        subprocess.Popen(["cmd", "/c", str(script)], cwd=str(script.parent), env=env, creationflags=subprocess.CREATE_NEW_CONSOLE)
+        ref = Path(self.reference_path.get())
+        if not ref.is_file():
+            messagebox.showerror("Reference required", "Record your voice using Record WAV first.")
+            return
+        exact = self.reference_text.get().strip()
+        target = self.target_text.get().strip()
+        if not exact or not target:
+            messagebox.showerror("Text required", "Enter the exact spoken words and the new words to generate.")
+            return
+        try:
+            root = self.current_root()
+        except (OSError, ValueError) as exc:
+            messagebox.showerror("Model folder", str(exc))
+            return
+        folder = model_folder(root, name)
+        if not (folder / ".clone-central-ready").is_file():
+            messagebox.showerror("Model not ready", "Selected model is not downloaded.")
+            return
+        app_dir = Path(__file__).resolve().parent
+        python = Path(sys.executable)
+        output = CONFIG_PATH.parent / "outputs" / "voice.wav"
+        self.output_file = None
+        self.busy = True
+        self.generate_button.configure(state="disabled")
+        self.progress.start(12)
+        self.log("Preparing voice generator for " + name + "...")
+        self.log("First run installs voice dependencies. CPU inference may be slow.")
+        args = [str(python), str(app_dir / "experiments" / "voice_clone.py"), "--reference", str(ref),
+                "--reference-text", exact, "--text", target, "--mode", self.mode.get(),
+                "--model-path", str(folder), "--output", str(output)]
+        threading.Thread(target=self.run_voice, args=(python, app_dir, args, output), daemon=True).start()
+
+    def run_voice(self, python, app_dir, args, output):
+        creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+
+        def run_step(command):
+            process = subprocess.Popen(command, cwd=str(app_dir), stdout=subprocess.PIPE,
+                                       stderr=subprocess.STDOUT, text=True, encoding="utf-8",
+                                       errors="replace", bufsize=1, creationflags=creationflags)
+            for line in process.stdout:
+                value = line.strip()
+                if value:
+                    self.after(0, lambda item=value: self.log(item))
+            return process.wait()
+
+        try:
+            check = subprocess.run([str(python), "-c", "import qwen_tts, soundfile"],
+                                   capture_output=True, creationflags=creationflags)
+            if check.returncode:
+                self.after(0, lambda: self.log("Installing Qwen3-TTS dependencies locally..."))
+                if run_step([str(python), "-m", "pip", "install", "qwen-tts", "soundfile"]):
+                    raise RuntimeError("Dependency installation failed. See activity log.")
+            if run_step(args):
+                raise RuntimeError("Voice generation failed. See activity log.")
+            if not output.is_file() or output.stat().st_size == 0:
+                raise RuntimeError("No voice WAV was produced.")
+            self.after(0, lambda: self.finish_generation(output, None))
+        except Exception as exc:
+            reason = str(exc)
+            self.after(0, lambda: self.finish_generation(None, reason))
+
+    def finish_generation(self, output, error):
+        self.busy = False
+        self.generate_button.configure(state="normal")
+        self.progress.stop()
+        if error:
+            self.log("ERROR: " + error)
+        else:
+            self.output_file = output
+            self.log("SUCCESS: Saved WAV at " + str(output))
 
 
 def cli(argv=None):
