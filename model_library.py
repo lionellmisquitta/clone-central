@@ -9,9 +9,11 @@ import os
 import subprocess
 import sys
 import threading
+import time
 import tkinter as tk
 from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
+from recorder import MAX_SECONDS, MicrophoneRecorder, output_path
 
 CATALOG = {
     "Qwen3-TTS 0.6B Base": ("voice", "Qwen/Qwen3-TTS-12Hz-0.6B-Base", "qwen-0.6b-base"),
@@ -107,13 +109,17 @@ class Library(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("Clone Central - Model Library")
-        self.geometry("640x375")
-        self.minsize(600, 330)
+        self.geometry("680x560")
+        self.minsize(620, 520)
         self.root_dir = tk.StringVar(value=str(read_root()))
         self.available = tk.StringVar(value=next(iter(CATALOG)))
         self.selected = tk.StringVar()
         self.status = tk.StringVar(value="Choose a download or select an installed model.")
         self.busy = False
+        self.recorder = MicrophoneRecorder()
+        self.recording_at = None
+        self.reference_path = tk.StringVar(value="No recording yet")
+        self.record_time = tk.StringVar(value="Ready to record (up to 30 seconds)")
 
         area = ttk.Frame(self, padding=18)
         area.pack(fill="both", expand=True)
@@ -136,6 +142,15 @@ class Library(tk.Tk):
         self.installed_combo = ttk.Combobox(row2, textvariable=self.selected, state="readonly")
         self.installed_combo.pack(side="left", fill="x", expand=True)
         ttk.Button(row2, text="Refresh", command=self.refresh).pack(side="left", padx=(8, 0))
+        ttk.Label(area, text="Reference voice — record directly in Clone Central").pack(anchor="w", pady=(4, 3))
+        buttons = ttk.Frame(area)
+        buttons.pack(fill="x")
+        self.record_button = ttk.Button(buttons, text="Record WAV", command=self.start_recording)
+        self.record_button.pack(side="left")
+        self.stop_button = ttk.Button(buttons, text="Stop and save", command=self.stop_recording, state="disabled")
+        self.stop_button.pack(side="left", padx=8)
+        ttk.Label(buttons, textvariable=self.record_time).pack(side="left", padx=8)
+        ttk.Label(area, textvariable=self.reference_path, wraplength=620).pack(anchor="w", pady=(4, 8))
         ttk.Button(area, text="Use selected model", command=self.use_selected).pack(anchor="w")
         ttk.Label(area, textvariable=self.status, wraplength=570).pack(anchor="w", pady=(14, 0))
         ttk.Label(area, text="Downloads stay local. No voice samples or weights are uploaded to GitHub.", foreground="#555").pack(anchor="w", pady=(12, 0))
@@ -204,6 +219,45 @@ class Library(tk.Tk):
         self.status.set(status)
         self.refresh()
 
+    def start_recording(self):
+        try:
+            self.recorder.start()
+        except Exception as exc:
+            messagebox.showerror("Microphone error", "Could not start recording: " + str(exc))
+            return
+        self.recording_at = time.monotonic()
+        self.record_button.configure(state="disabled")
+        self.stop_button.configure(state="normal")
+        self.status.set("Recording from your default microphone. Speak naturally, then click Stop and save.")
+        self.update_record_timer()
+
+    def update_record_timer(self):
+        if self.recording_at is None:
+            return
+        seconds = time.monotonic() - self.recording_at
+        self.record_time.set(f"Recording: {seconds:.1f}s / {MAX_SECONDS}s")
+        if seconds >= MAX_SECONDS:
+            self.stop_recording()
+        else:
+            self.after(200, self.update_record_timer)
+
+    def stop_recording(self):
+        if self.recording_at is None:
+            return
+        self.recording_at = None
+        destination = output_path(CONFIG_PATH.parent / "recordings")
+        try:
+            path = self.recorder.stop(destination)
+        except Exception as exc:
+            self.status.set("Recording failed: " + str(exc))
+            messagebox.showerror("Recording error", str(exc))
+        else:
+            self.reference_path.set(str(path))
+            self.status.set("WAV saved locally. Select your voice model and click Use selected model.")
+        self.record_button.configure(state="normal")
+        self.stop_button.configure(state="disabled")
+        self.record_time.set("Ready to record (up to 30 seconds)")
+
     def use_selected(self):
         name = self.selected.get()
         if name not in CATALOG:
@@ -214,6 +268,8 @@ class Library(tk.Tk):
         env = os.environ.copy()
         env["CLONE_CENTRAL_MODEL_NAME"] = model_id
         env["CLONE_CENTRAL_MODEL_PATH"] = str(model_folder(root, name))
+        if kind == "voice" and self.reference_path.get() != "No recording yet":
+            env["CLONE_CENTRAL_REFERENCE_WAV"] = self.reference_path.get()
         launcher = "VOICE-EXPERIMENT.cmd" if kind == "voice" else "MUSIC-EXPERIMENT.cmd"
         script = Path(__file__).resolve().parent / launcher
         if not script.is_file():
