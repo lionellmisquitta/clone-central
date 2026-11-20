@@ -42,3 +42,7 @@ The graphical picker also has a **Copy pull command** button. Both interfaces sh
 Open Model Library and click **Record WAV**; speak for 10–20 seconds (30-second limit), then **Stop and save**. A mono 16-kHz signed 16-bit WAV is saved outside OneDrive by default under `%LOCALAPPDATA%\CloneCentral\recordings`. The path appears in the same window. Clicking **Use selected model** automatically passes this WAV to the voice experiment, where you must enter **exactly what you said** as the reference transcript and then your new target text. The default microphone is used; Windows microphone permission must be enabled. This is local recording, not cloud upload.
 
 **Current limitation:** generation still uses a command window. The in-window generation and progress view remain future work; do not claim they exist.
+
+## One-window voice generation
+
+The updated Model Library includes reference WAV recording, a reference transcript field, new text, Fast/Balanced/Studio choice, **Generate voice**, an in-window progress indicator, a scrolling activity log, and **Open generated WAV**. Clicking Generate voice runs dependency setup and local CPU inference without opening a new console. The generated voice goes under `%LOCALAPPDATA%\\CloneCentral\\outputs\\voice.wav`. This is an indeterminate activity indicator (not a measured generation percentage). Music processing is not yet integrated into this panel.
