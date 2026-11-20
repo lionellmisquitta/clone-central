@@ -67,13 +67,23 @@ def download_model(root, name):
             # Files come from the official Qwen organisation.
         )
     else:
-        # Demucs downloads weights using Torch's hub cache.
-        # TORCH_HOME may be set before importing Torch/Demucs.
-        os.environ["TORCH_HOME"] = str(folder)
-        from demucs.pretrained import get_model
-
-        get_model(repo_or_name)
-        # The cache may include nested files; marker is our completion record.
+        # Use the separate music environment so Torch package versions do not
+        # conflict with the voice environment. The cache lives in chosen folder.
+        music_env = Path(__file__).resolve().parent / ".venv-music"
+        music_python = music_env / "Scripts" / "python.exe" if os.name == "nt" else music_env / "bin" / "python"
+        if not music_python.exists():
+            subprocess.run(["py", "-3.12", "-m", "venv", str(music_env)], check=True)
+        probe = subprocess.run([str(music_python), "-c", "import demucs"], capture_output=True)
+        if probe.returncode != 0:
+            subprocess.run([str(music_python), "-m", "pip", "install", "demucs"], check=True)
+        env = os.environ.copy()
+        env["TORCH_HOME"] = str(folder)
+        subprocess.run([
+            str(music_python), "-c",
+            "from demucs.pretrained import get_model; import sys; get_model(sys.argv[1])",
+            repo_or_name,
+        ], check=True, env=env)
+        # Demucs may download multiple pieces; only mark after all load successfully.
     marker.write_text(repo_or_name + "\n", encoding="utf-8")
     return folder
 
