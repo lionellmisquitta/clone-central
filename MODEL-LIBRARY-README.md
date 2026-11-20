@@ -19,3 +19,20 @@ Only catalog-listed model names are available; this version does **not** allow a
 The local model folder, voice samples and music files must never be added to GitHub. The Python environments are per-folder, ignored by Git. Music and voice dependencies are separate for compatibility.
 
 **Known limitations:** no download progress bar (status text only), no uninstall button, no integrity pinning, no model benchmarks, no training, no RVC inference, no full audio editor. GitHub Actions can package the scripts, but cannot validate your actual Surface's audio-quality or processing speed.
+
+## Ollama-style commands (now supported)
+
+From the extracted experiment folder, open Command Prompt and use:
+
+```bat
+clone-central pull qwen-0.6b
+clone-central pull demucs-htdemucs
+clone-central list
+clone-central models
+```
+
+`pull` downloads the selected model to the SAME folder used by the graphical picker.
+`list` shows only completed local downloads; `models` opens the picker.
+Use `--folder "D:\\AI Models\\CloneCentral"` after a `pull` or `list` command to choose a storage directory; a chosen folder is remembered.
+
+The graphical picker also has a **Copy pull command** button. Both interfaces share one small model catalog. First launch installs only the Python download helper; actual models remain external downloads. This is an experimental source-based ZIP, not a self-contained .exe.
