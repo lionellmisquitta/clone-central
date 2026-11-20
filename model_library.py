@@ -195,7 +195,7 @@ class Library(tk.Tk):
             messagebox.showerror("Missing launcher", str(script))
             return
         self.status.set("Opening " + launcher + " with " + name)
-        subprocess.Popen(["cmd", "/c", "start", "", "cmd", "/k", str(script)], cwd=str(script.parent), env=env)
+        subprocess.Popen(["cmd", "/c", str(script)], cwd=str(script.parent), env=env, creationflags=subprocess.CREATE_NEW_CONSOLE)
 
 
 if __name__ == "__main__":
