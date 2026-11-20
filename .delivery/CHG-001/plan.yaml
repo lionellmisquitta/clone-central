@@ -1,0 +1,25 @@
+schema_version: "1.0"
+change_id: CHG-001
+route: standard_change
+prohibited_paths:
+  - models/
+  - outputs/
+  - data/
+test_config_changes:
+  - .github/workflows/ci.yml
+checkpoints:
+  - id: AUDIO_001
+    allowed_paths:
+      - .gitignore
+      - PLAN.md
+      - RUN.md
+      - .delivery/CHG-001/
+      - .github/workflows/ci.yml
+      - experiments/
+      - tests/
+    test_paths:
+      - tests/test_experiments.py
+    tests:
+      - id: T-001
+        command: ["python", "-m", "unittest", "discover", "-s", "tests", "-v"]
+        timeout_seconds: 60
