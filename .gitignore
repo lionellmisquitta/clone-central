@@ -1,0 +1,20 @@
+# Never commit recordings, model weights or generated audio.
+data/
+outputs/
+models/
+*.wav
+*.mp3
+*.flac
+*.ogg
+*.gguf
+*.safetensors
+*.pt
+*.pth
+*.ckpt
+*.onnx
+*.bin
+*.part
+__pycache__/
+.pytest_cache/
+.venv/
+.env
