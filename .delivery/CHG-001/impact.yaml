@@ -6,6 +6,9 @@ targets:
   - experiments/voice_clone.py
   - experiments/separate_music.py
   - tests/test_experiments.py
+  - tests/test_model_library.py
+  - model_library.py
+  - clone-central.cmd
   - .github/workflows/ci.yml
   - RUN.md
 regression_obligations:
