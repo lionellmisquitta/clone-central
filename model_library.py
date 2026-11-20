@@ -3,6 +3,7 @@
 The folder is user-selected and remembered under LOCALAPPDATA. Downloaded model
 files are never stored in this Git repository. Run through MODEL-LIBRARY.cmd.
 """
+import argparse
 import json
 import os
 import subprocess
@@ -21,6 +22,16 @@ CATALOG = {
 }
 CONFIG_PATH = Path(os.environ.get("LOCALAPPDATA", str(Path.home()))) / "CloneCentral" / "settings.json"
 DEFAULT_ROOT = Path(os.environ.get("LOCALAPPDATA", str(Path.home()))) / "CloneCentral" / "models"
+
+# User-friendly stable aliases. GUI and CLI share the same catalog and download code.
+ALIASES = {
+    "qwen-0.6b": "Qwen3-TTS 0.6B Base",
+    "qwen-1.7b": "Qwen3-TTS 1.7B Base",
+    "demucs-mdx": "Demucs MDX Quantized",
+    "demucs-htdemucs": "Demucs HTDemucs",
+    "demucs-htdemucs-ft": "Demucs HTDemucs Fine Tuned",
+}
+
 
 
 def read_root():
@@ -49,6 +60,10 @@ def installed(root):
         if marker.is_file():
             found.append(name)
     return found
+
+
+def alias_for(name):
+    return next(alias for alias, title in ALIASES.items() if title == name)
 
 
 def download_model(root, name):
@@ -107,12 +122,13 @@ class Library(tk.Tk):
         folder_row.pack(fill="x", pady=(3, 12))
         ttk.Entry(folder_row, textvariable=self.root_dir).pack(side="left", fill="x", expand=True)
         ttk.Button(folder_row, text="Browse...", command=self.browse).pack(side="left", padx=(8, 0))
-        ttk.Label(area, text="Available for download").pack(anchor="w")
+        ttk.Label(area, text="Available for download (same as clone-central pull)").pack(anchor="w")
         row = ttk.Frame(area)
         row.pack(fill="x", pady=(3, 12))
         ttk.Combobox(row, textvariable=self.available, values=list(CATALOG), state="readonly").pack(side="left", fill="x", expand=True)
         self.download_button = ttk.Button(row, text="Download", command=self.download)
         self.download_button.pack(side="left", padx=(8, 0))
+        ttk.Button(area, text="Copy pull command", command=self.copy_pull).pack(anchor="w", pady=(0, 8))
 
         ttk.Label(area, text="Installed models (choose the one to use)").pack(anchor="w")
         row2 = ttk.Frame(area)
@@ -126,7 +142,10 @@ class Library(tk.Tk):
         self.refresh()
 
     def current_root(self):
-        root = Path(self.root_dir.get()).expanduser()
+        raw = self.root_dir.get().strip()
+        if not raw:
+            raise ValueError("Choose a model folder.")
+        root = Path(raw).expanduser()
         if not str(root).strip():
             raise ValueError("Choose a model folder.")
         root.mkdir(parents=True, exist_ok=True)
@@ -148,6 +167,12 @@ class Library(tk.Tk):
                 self.selected.set(names[0] if names else "")
         except (OSError, ValueError) as exc:
             self.status.set(str(exc))
+
+    def copy_pull(self):
+        command = "clone-central pull " + alias_for(self.available.get())
+        self.clipboard_clear()
+        self.clipboard_append(command)
+        self.status.set("Copied: " + command)
 
     def download(self):
         if self.busy:
@@ -198,5 +223,45 @@ class Library(tk.Tk):
         subprocess.Popen(["cmd", "/c", str(script)], cwd=str(script.parent), env=env, creationflags=subprocess.CREATE_NEW_CONSOLE)
 
 
+def cli(argv=None):
+    """Minimal Ollama-style CLI sharing the same download and installed-model logic."""
+    parser = argparse.ArgumentParser(prog="clone-central", description="Local model downloader")
+    actions = parser.add_subparsers(dest="action")
+    pull = actions.add_parser("pull", help="Download model by its alias")
+    pull.add_argument("model", choices=ALIASES)
+    pull.add_argument("--folder", type=Path, help="Model storage root (saved for subsequent runs)")
+    listing = actions.add_parser("list", help="List downloaded models")
+    listing.add_argument("--folder", type=Path)
+    actions.add_parser("models", help="Open graphical model picker")
+    args = parser.parse_args(argv)
+    if args.action in (None, "models"):
+        Library().mainloop()
+        return 0
+    root = args.folder.expanduser() if args.folder else read_root()
+    if args.folder:
+        save_root(root)
+    if args.action == "list":
+        names = installed(root)
+        print("Model folder:", root)
+        if not names:
+            print("No installed models. Run: clone-central pull qwen-0.6b")
+        for name in names:
+            print(alias_for(name), "-", name, "-", model_folder(root, name))
+        return 0
+    name = ALIASES[args.model]
+    folder = model_folder(root, name)
+    if (folder / ".clone-central-ready").is_file():
+        print("Already installed:", name, "at", folder)
+        return 0
+    print("Downloading:", name, "to", folder, flush=True)
+    try:
+        download_model(root, name)
+    except Exception as exc:
+        print("Download failed:", exc, file=sys.stderr)
+        return 1
+    print("Installed:", name, "at", folder)
+    return 0
+
+
 if __name__ == "__main__":
-    Library().mainloop()
+    raise SystemExit(cli())
