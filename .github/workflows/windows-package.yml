@@ -30,7 +30,7 @@ jobs:
           $dest = Join-Path $env:RUNNER_TEMP 'Clone-Central-Windows-Experiments'
           New-Item -ItemType Directory -Path $dest -Force | Out-Null
           New-Item -ItemType Directory -Path (Join-Path $dest 'experiments') -Force | Out-Null
-          Copy-Item README.md, RUN.md, PLAN.md, START-HERE.txt, MODEL-LIBRARY-README.md, MODEL-LIBRARY.cmd, clone-central.cmd, model_library.py, VOICE-EXPERIMENT.cmd, MUSIC-EXPERIMENT.cmd -Destination $dest
+          Copy-Item README.md, RUN.md, PLAN.md, START-HERE.txt, MODEL-LIBRARY-README.md, MODEL-LIBRARY.cmd, clone-central.cmd, model_library.py, recorder.py, VOICE-EXPERIMENT.cmd, MUSIC-EXPERIMENT.cmd -Destination $dest
           Copy-Item experiments/voice_clone.py, experiments/separate_music.py -Destination (Join-Path $dest 'experiments')
           $zip = Join-Path $env:RUNNER_TEMP 'Clone-Central-Windows-Experiments.zip'
           Compress-Archive -Path $dest -DestinationPath $zip -Force
